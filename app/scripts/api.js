@@ -1,0 +1,25 @@
+'use strict';
+
+/**
+ * @ngdoc module
+ * @name OST-API
+ *
+ * @description
+ * The OST-API module to provide the low-level
+ * API for the OSTApp
+ */
+angular.module('OST-API', []);
+
+/**
+ * @ngdoc type
+ * @name OST-API.type.APIError
+ *
+ * @description
+ * An API error with the human description
+ *
+ * ```js
+    {
+      "description": "Human description"
+    }
+ * ```
+ */

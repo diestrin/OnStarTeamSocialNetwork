@@ -29,7 +29,7 @@ module.exports = function (grunt) {
     watch: {
       js: {
         files: ['<%= yeoman.app %>/scripts/{,*/}*.js'],
-        tasks: ['newer:jshint:all'],
+        tasks: ['newer:jshint:all','docular'],
         options: {
           livereload: true
         }
@@ -349,6 +349,23 @@ module.exports = function (grunt) {
         configFile: 'karma.conf.js',
         singleRun: true
       }
+    },
+
+    docular: {
+      /* jshint camelcase: false */
+      showDocularDocs: true,
+      showAngularDocs: true,
+      docular_webapp_target: 'docs',
+      groups: [{
+        groupTitle: 'OST',
+        groupId: 'ost',
+        groupIcon: 'icon-beer',
+        sections: [{
+          id: 'api',
+          title: 'API',
+          scripts: ['<%= yeoman.app %>/scripts']
+        }]
+      }]
     }
   });
 
@@ -364,6 +381,7 @@ module.exports = function (grunt) {
       'concurrent:server',
       'autoprefixer',
       'connect:livereload',
+      'docular',
       'watch'
     ]);
   });
@@ -372,6 +390,11 @@ module.exports = function (grunt) {
     grunt.log.warn('The `server` task has been deprecated. Use `grunt serve` to start a server.');
     grunt.task.run(['serve']);
   });
+
+  grunt.registerTask('docs', [
+    'docular',
+    'docular-server'
+  ]);
 
   grunt.registerTask('test', [
     'clean:server',
