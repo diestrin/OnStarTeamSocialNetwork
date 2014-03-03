@@ -1,19 +1,20 @@
 'use strict';
 
-describe('Controller: MainCtrl', function () {
+describe('Controller: LoginCtrl', function () {
 
   // load the controller's module
-  beforeEach(module('OSTApp'));
+  beforeEach(module('ostApp'));
 
-  var MainCtrl,
+  var LoginCtrl,
     scope;
 
   // Initialize the controller and a mock scope
   beforeEach(inject(function ($controller, $rootScope) {
     scope = $rootScope.$new();
-    MainCtrl = $controller('MainCtrl', {
+    LoginCtrl = $controller('LoginCtrl', {
       $scope: scope
     });
   }));
+
 
 });

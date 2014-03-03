@@ -8,7 +8,9 @@
  * The OST-API module to provide the low-level
  * API for the OSTApp
  */
-angular.module('OST-API', []);
+angular.module('OST-API', [
+  'ngRoute'
+]);
 
 /**
  * @ngdoc type
@@ -17,7 +19,7 @@ angular.module('OST-API', []);
  * @description
  * An API error with the human description
  *
- * ```js
+ * ```json
     {
       "description": "Human description"
     }

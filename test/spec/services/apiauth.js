@@ -35,7 +35,7 @@ describe('Service: apiAuth', function () {
     $rootScope.$digest();
   });
 
-  describe('#register#', function () {
+  describe('# register #', function () {
 
     it('should register a new user', function () {
       expect(newUser).toBeDefined();
@@ -62,7 +62,7 @@ describe('Service: apiAuth', function () {
     });
   });
 
-  describe('#login#', function () {
+  describe('# login #', function () {
     var failLogin;
     beforeEach(function () {
       failLogin = jasmine.createSpy('failLogin');
@@ -118,7 +118,7 @@ describe('Service: apiAuth', function () {
     });
   });
 
-  describe('#logout#', function () {
+  describe('# logout #', function () {
 
     it('should logout a user in session', function () {
       var succcesLogout;
@@ -142,6 +142,75 @@ describe('Service: apiAuth', function () {
       .finally(function () {
         expect(failLogout)
           .toHaveBeenCalledWith(apiAuth.ERROR_LOGOUT_NO_USER_IN_SESSION);
+      });
+
+      $rootScope.$digest();
+    });
+  });
+
+  describe('# getCurrentUser #', function () {
+    beforeEach(function () {
+      apiAuth.logout();
+    });
+
+    it('should return the current user in session', function () {
+      apiAuth.login(user.username, user.password)
+      .then(function () {
+        var currentUser = apiAuth.getCurrentUser();
+
+        expect(currentUser.name).toBe(user.name);
+        expect(currentUser.email).toBe(user.email);
+        expect(currentUser.username).toBe(user.username);
+        expect(currentUser.password).toBeUndefined();
+        expect(currentUser.__password).toBeUndefined();
+      });
+
+      $rootScope.$digest();
+    });
+
+    it('shouldn\'t return the current user if no one is in session', function () {
+      var currentUser = apiAuth.getCurrentUser();
+
+      expect(currentUser).toBeNull();
+    });
+  });
+
+  describe('# getCurrentUserStatus #', function () {
+    beforeEach(function () {
+      apiAuth.logout();
+    });
+
+    afterEach(function () {
+      apiAuth.logout();
+      MemoryAdapter.reset();
+    });
+
+    it('should return the current status', function () {
+
+      expect(apiAuth.getCurrentUserStatus()).toBe(apiAuth.USER_STATUS_GUEST);
+
+      apiAuth.login(user.username, user.password)
+      .then(function () {
+        expect(apiAuth.getCurrentUserStatus()).toBe(apiAuth.USER_STATUS_AUTH);
+      });
+
+      $rootScope.$digest();
+    });
+  });
+
+  describe('policy checking', function () {
+    beforeEach(function () {
+      apiAuth.logout();
+    });
+
+    it('should ensure the current user status be on rule', function () {
+      expect(apiAuth.__isCurrentStatusOnPolicy('USER_STATUS_GUEST')).toBe(true);
+      expect(apiAuth.__isCurrentStatusOnPolicy('USER_STATUS_AUTH')).toBe(false);
+
+      apiAuth.login(user.username, user.password)
+      .then(function () {
+        expect(apiAuth.__isCurrentStatusOnPolicy('USER_STATUS_GUEST')).toBe(false);
+        expect(apiAuth.__isCurrentStatusOnPolicy('USER_STATUS_AUTH')).toBe(true);
       });
 
       $rootScope.$digest();

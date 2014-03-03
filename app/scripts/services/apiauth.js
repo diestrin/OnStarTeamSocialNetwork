@@ -1,6 +1,20 @@
 'use strict';
 
 /**
+ * @ngdoc type
+ * @name OST-API.type.UserStatus
+ *
+ * @description
+ * An user status inside the application
+ *
+ * ```js
+    {
+      "name": "Human name of the user status"
+    }
+ * ```
+ */
+
+/**
  * @ngdoc service
  * @name OST-API.service:apiAuth
  *
@@ -11,12 +25,39 @@
  * @requires OST-API.service:MemoryAdapter
  */
 angular.module('OST-API')
-.factory('apiAuth', function ($q, MemoryAdapter) {
-  var auth, users;
+.factory('apiAuth', function ($q, MemoryAdapter, $route, $rootScope, $location) {
+  var auth, users, currentUser, currentUserStatus;
 
+  // auth is the public API exposed by the service
   auth = {
-    // Restore the current user if any
-    __currentUser: MemoryAdapter.get('OST-API:Auth:currentUser') || null,
+    /**
+     * @ngdoc property
+     * @name OST-API.service:apiAuth#USER_STATUS_GUEST
+     * @propertyOf OST-API.service:apiAuth
+     *
+     * @description
+     * The status of a non authenticated user
+     *
+     * @return {UserStatus} The corresponding {@link OST-API.type.UserStatus UserStatus}
+     */
+    USER_STATUS_GUEST: {
+      name: 'guest'
+    },
+
+    /**
+     * @ngdoc property
+     * @name OST-API.service:apiAuth#USER_STATUS_AUTH
+     * @propertyOf OST-API.service:apiAuth
+     *
+     * @description
+     * The status of an authenticated user
+     *
+     * @return {UserStatus} The corresponding {@link OST-API.type.UserStatus UserStatus}
+     */
+    USER_STATUS_AUTH: {
+      name: 'auth'
+    },
+
     /**
      * @ngdoc property
      * @name OST-API.service:apiAuth#ERROR_LOGIN_INVALID_USERNAME
@@ -91,8 +132,78 @@ angular.module('OST-API')
   // Restore the list of users if any
   users = MemoryAdapter.get('OST-API:Auth:users') || {};
 
-  auth.__getCurrentUser = function () {
-    return auth.__currentUser;
+  // Restore the current user if any
+  currentUser = MemoryAdapter.get('OST-API:Auth:currentUser') || null;
+
+  // Define for the first time the current user status
+  currentUserStatus = currentUser === null ?
+    auth.USER_STATUS_GUEST : auth.USER_STATUS_AUTH;
+
+  // Handles the update on the route to match the
+  // auth policy declared on the $routeProvider configuration
+  $rootScope.$on('$routeChangeSuccess', function () {
+    if (!auth.__isCurrentStatusOnPolicy($route.current.$$route.authPolicy)) {
+      $location.path($route.current.$$route.onAuthPolicyFails);
+    }
+  });
+
+  // Verify if this route is allow in the policy
+  // ** This method is registered in auth for test purposes
+  auth.__isCurrentStatusOnPolicy = function (policy) {
+    var isAllow = true;
+
+    if (auth.getCurrentUserStatus() !== auth[policy]) {
+      isAllow = false;
+    }
+
+    return isAllow;
+  };
+
+  /**
+   * @ngdoc function
+   * @name OST-API.service:apiAuth#getCurrentUser
+   * @methodOf OST-API.service:apiAuth
+   *
+   * @description
+   * Gets the current user
+   * ```json
+      {
+        "name": "Human user name",
+        "username": "Username",
+        "email": "The user's email"
+      }
+   * ```
+   *
+   * @returns {object} The current user
+   */
+  auth.getCurrentUser = function () {
+    var __currentUser = null;
+
+    if (currentUser) {
+      __currentUser = angular.copy(currentUser);
+      __currentUser.__password = undefined;
+    }
+
+    return __currentUser;
+  };
+
+  /**
+   * @ngdoc function
+   * @name OST-API.service:apiAuth#getCurrentUserStatus
+   * @methodOf OST-API.service:apiAuth
+   *
+   * @description
+   * Gets the current user status
+   * - {@link OST-API.service:apiAuth#USER_STATUS_GUEST Guest}
+   * - {@link OST-API.service:apiAuth#USER_STATUS_AUTH Auth}
+   *
+   * @returns {UserStatus} The corresponding {@link OST-API.type.UserStatus}
+   */
+  auth.getCurrentUserStatus = function () {
+    currentUserStatus = currentUser ?
+      auth.USER_STATUS_AUTH : auth.USER_STATUS_GUEST;
+
+    return currentUserStatus;
   };
 
   /**
@@ -110,8 +221,8 @@ angular.module('OST-API')
 
     deferrer = $q.defer();
 
-    if (auth.__currentUser) {
-      auth.__currentUser = null;
+    if (currentUser) {
+      currentUser = null;
       MemoryAdapter.remove('OST-API:Auth:currentUser');
       deferrer.resolve();
 
@@ -140,7 +251,7 @@ angular.module('OST-API')
     deferrer = $q.defer();
 
     // Ensure there's no user in session
-    if (auth.__currentUser) {
+    if (currentUser) {
       deferrer.reject(auth.ERROR_LOGIN_USER_IN_SESSION);
 
     // Ensure there's an user registered with that username
@@ -148,7 +259,7 @@ angular.module('OST-API')
 
       // Ensure the password is the same
       if (user.__password === password) {
-        auth.__currentUser = user;
+        currentUser = user;
         MemoryAdapter.set('OST-API:Auth:currentUser', user);
         deferrer.resolve(user);
 

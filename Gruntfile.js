@@ -29,7 +29,7 @@ module.exports = function (grunt) {
     watch: {
       js: {
         files: ['<%= yeoman.app %>/scripts/{,*/}*.js'],
-        tasks: ['newer:jshint:all','docular'],
+        tasks: ['newer:jshint:all'],
         options: {
           livereload: true
         }
@@ -381,7 +381,6 @@ module.exports = function (grunt) {
       'concurrent:server',
       'autoprefixer',
       'connect:livereload',
-      'docular',
       'watch'
     ]);
   });
