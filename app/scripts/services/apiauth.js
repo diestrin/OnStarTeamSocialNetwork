@@ -22,11 +22,41 @@
  * This service handles the authentication layer of the application
  * and registration of new users to the system.
  *
+ * @requires ng.$q
+ * @requires ng.$rootScope
+ * @requires ng.$location
+ * @requires ngRoute.$route
  * @requires OST-API.service:MemoryAdapter
+ * @requires OST-API.service:apiUsers
  */
 angular.module('OST-API')
-.factory('apiAuth', function ($q, MemoryAdapter, $route, $rootScope, $location) {
-  var auth, users, currentUser, currentUserStatus;
+.factory('apiAuth', function ($q, MemoryAdapter, $route, $rootScope, $location, apiUsers) {
+  var auth, currentUser, currentUserStatus;
+
+  /**
+   * @ngdoc event
+   * @name OST-API.service:apiAuth#OST-API_Auth_Login_success
+   * @eventOf OST-API.service:apiAuth
+   * @eventType broadcast on root scope
+   *
+   * @description
+   * Event triggered when an user has been authenticated
+   *
+   * @param {Object} angularEvent Synthetic event object.
+   * @param {Object} user The new user in session
+   */
+
+  /**
+   * @ngdoc event
+   * @name OST-API.service:apiAuth#OST-API_Auth_Logout_success
+   * @eventOf OST-API.service:apiAuth
+   * @eventType broadcast on root scope
+   *
+   * @description
+   * Event key triggered when the active user has been removed form session
+   *
+   * @param {Object} angularEvent Synthetic event object.
+   */
 
   // auth is the public API exposed by the service
   auth = {
@@ -126,14 +156,42 @@ angular.module('OST-API')
      */
     ERROR_REGISTER_USER_ALREADY_EXISTS: {
       description: 'The user already exists'
-    }
-  };
+    },
 
-  // Restore the list of users if any
-  users = MemoryAdapter.get('OST-API:Auth:users') || {};
+    /**
+     * @ngdoc property
+     * @name OST-API.service:apiAuth#EVENT_LOGIN_SUCCESS
+     * @propertyOf OST-API.service:apiAuth
+     *
+     * @description
+     * Event key triggered when an user has been authenticated
+     *
+     * @return {string} The event key
+     */
+    EVENT_LOGIN_SUCCESS: 'OST-API_Auth_Login_success',
+
+    /**
+     * @ngdoc property
+     * @name OST-API.service:apiAuth#EVENT_LOGOUT_SUCCESS
+     * @propertyOf OST-API.service:apiAuth
+     *
+     * @description
+     * Event key triggered when the active user has been removed form session
+     *
+     * @return {string} The event key
+     */
+    EVENT_LOGOUT_SUCCESS: 'OST-API_Auth_Logout_success'
+  };
 
   // Restore the current user if any
   currentUser = MemoryAdapter.get('OST-API:Auth:currentUser') || null;
+
+  $rootScope.$on(apiUsers.EVENT_USER_UPDATED, function (e, user) {
+    if (user.username === currentUser.username) {
+      currentUser = user;
+      MemoryAdapter.set('OST-API:Auth:currentUser', currentUser);
+    }
+  });
 
   // Define for the first time the current user status
   currentUserStatus = currentUser === null ?
@@ -142,7 +200,9 @@ angular.module('OST-API')
   // Handles the update on the route to match the
   // auth policy declared on the $routeProvider configuration
   $rootScope.$on('$routeChangeSuccess', function () {
-    if (!auth.__isCurrentStatusOnPolicy($route.current.$$route.authPolicy)) {
+    if ($route.current.$$route.authPolicy &&
+      !auth.__isCurrentStatusOnPolicy($route.current.$$route.authPolicy)) {
+
       $location.path($route.current.$$route.onAuthPolicyFails);
     }
   });
@@ -181,7 +241,7 @@ angular.module('OST-API')
 
     if (currentUser) {
       __currentUser = angular.copy(currentUser);
-      __currentUser.__password = undefined;
+      delete __currentUser.__password;
     }
 
     return __currentUser;
@@ -225,6 +285,7 @@ angular.module('OST-API')
       currentUser = null;
       MemoryAdapter.remove('OST-API:Auth:currentUser');
       deferrer.resolve();
+      $rootScope.$broadcast(auth.EVENT_LOGOUT_SUCCESS);
 
     } else {
       deferrer.reject(auth.ERROR_LOGOUT_NO_USER_IN_SESSION);
@@ -246,7 +307,7 @@ angular.module('OST-API')
    * @return {Promise}          The promise to be resolved
    */
   auth.login = function (username, password) {
-    var user, deferrer;
+    var deferrer;
 
     deferrer = $q.defer();
 
@@ -255,20 +316,22 @@ angular.module('OST-API')
       deferrer.reject(auth.ERROR_LOGIN_USER_IN_SESSION);
 
     // Ensure there's an user registered with that username
-    } else if ((user = users[username])) {
-
-      // Ensure the password is the same
-      if (user.__password === password) {
-        currentUser = user;
-        MemoryAdapter.set('OST-API:Auth:currentUser', user);
-        deferrer.resolve(user);
-
-      } else {
-        deferrer.reject(auth.ERROR_LOGIN_INVALID_PASSWORD);
-      }
-
+    // store the user in the variable, the single equal is
+    // intentional
     } else {
-      deferrer.reject(auth.ERROR_LOGIN_INVALID_USERNAME);
+      apiUsers.getUser(username)
+      .then(function (user) {
+
+        if (user.__password === password) {
+          currentUser = user;
+          MemoryAdapter.set('OST-API:Auth:currentUser', user);
+          deferrer.resolve(user);
+          $rootScope.$broadcast(auth.EVENT_LOGIN_SUCCESS, user);
+
+        } else {
+          deferrer.reject(auth.ERROR_LOGIN_INVALID_PASSWORD);
+        }
+      }, deferrer.reject);
     }
 
     return deferrer.promise;
@@ -292,20 +355,19 @@ angular.module('OST-API')
     var deferrer = $q.defer();
 
     // Search the username in the registry
-    if (!(username in users)) {
-      users[username] = {
+    apiUsers.getUser(username)
+    .then(function () {
+      deferrer.reject(auth.ERROR_REGISTER_USER_ALREADY_EXISTS);
+    }, function () {
+      return apiUsers.addUser({
         __password: password,
         username: username,
         name: name,
-        email: email
-      };
-      MemoryAdapter.set('OST-API:Auth:users', users);
-
-      deferrer.resolve(users[username]);
-
-    } else {
-      deferrer.reject(auth.ERROR_REGISTER_USER_ALREADY_EXISTS);
-    }
+        email: email,
+        friends: []
+      })
+      .then(deferrer.resolve, deferrer.reject);
+    });
 
     return deferrer.promise;
   };

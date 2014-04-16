@@ -14,7 +14,8 @@ describe('Service: apiAuth', function () {
   }));
 
   // Register an user
-  var user, newUser;
+  var user, newUser, registrationPromise;
+
   beforeEach(function () {
     MemoryAdapter.reset();
 
@@ -27,7 +28,8 @@ describe('Service: apiAuth', function () {
 
     newUser = undefined;
 
-    apiAuth.register(user.username, user.password, user.name, user.email)
+    registrationPromise = apiAuth
+    .register(user.username, user.password, user.name, user.email)
     .then(function (_user) {
       newUser = _user;
     });
@@ -38,11 +40,13 @@ describe('Service: apiAuth', function () {
   describe('# register #', function () {
 
     it('should register a new user', function () {
-      expect(newUser).toBeDefined();
-      expect(newUser.username).toBe(user.username);
-      expect(newUser.__password).toBe(user.password);
-      expect(newUser.name).toBe(user.name);
-      expect(newUser.email).toBe(user.email);
+      registrationPromise.finally(function () {
+        expect(newUser).toBeDefined();
+        expect(newUser.username).toBe(user.username);
+        expect(newUser.__password).toBe(user.password);
+        expect(newUser.name).toBe(user.name);
+        expect(newUser.email).toBe(user.email);
+      });
     });
 
     it('should\'t allow to register the same user again', function () {
@@ -64,8 +68,11 @@ describe('Service: apiAuth', function () {
 
   describe('# login #', function () {
     var failLogin;
+
     beforeEach(function () {
       failLogin = jasmine.createSpy('failLogin');
+      apiAuth.logout();
+      $rootScope.$digest();
     });
 
     it('should login an existing user', function () {
@@ -78,6 +85,20 @@ describe('Service: apiAuth', function () {
       .finally(function () {
         expect(userInfo).toBeDefined();
         expect(userInfo.name).toBe(user.name);
+      });
+
+      $rootScope.$digest();
+    });
+
+    it('should broadcast and event in the $rootScope after successful login', function () {
+      var eventDispatched;
+
+      eventDispatched = jasmine.createSpy('eventDispatched');
+      $rootScope.$on(apiAuth.EVENT_LOGIN_SUCCESS, eventDispatched);
+
+      apiAuth.login(user.username, user.password)
+      .then(function () {
+        expect(eventDispatched).toHaveBeenCalled();
       });
 
       $rootScope.$digest();
@@ -130,7 +151,22 @@ describe('Service: apiAuth', function () {
       .finally(expect(succcesLogout).toHaveBeenCalled);
 
       $rootScope.$digest();
+    });
 
+    it('should broadcast and event in the $rootScope after successful logout', function () {
+      var eventDispatched;
+
+      eventDispatched = jasmine.createSpy('eventDispatched');
+      $rootScope.$on(apiAuth.EVENT_LOGOUT_SUCCESS, eventDispatched);
+
+      apiAuth.login(user.username, user.password)
+      .then(function () {
+        return apiAuth.logout();
+      }).then(function () {
+        expect(eventDispatched).toHaveBeenCalled();
+      });
+
+      $rootScope.$digest();
     });
 
     it('should\'t logout a user if no one is in session', function () {

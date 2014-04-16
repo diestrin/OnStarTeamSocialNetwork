@@ -1,0 +1,12 @@
+<h1 class="page-header" ng-bind="User.data.name"></h1>
+<p ng-bind="User.data.email"></p>
+
+<div ng-switch="User.isUserFriend" ng-if="!User.isCurrentUser">
+  <button ng-switch-when="false" class="btn btn-primary" ng-click="User.addFriend()">
+    Add as a friend
+  </button>
+
+  <button ng-switch-when="true" class="btn btn-danger" ng-click="User.removeFriend()">
+    Remove from friends
+  </button>
+</div>

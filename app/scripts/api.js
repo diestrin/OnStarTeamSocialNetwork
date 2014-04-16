@@ -6,7 +6,7 @@
  *
  * @description
  * The OST-API module to provide the low-level
- * API for the OSTApp
+ * API for the {@link OSTApp}
  */
 angular.module('OST-API', [
   'ngRoute'

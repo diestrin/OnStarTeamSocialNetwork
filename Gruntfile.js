@@ -364,6 +364,10 @@ module.exports = function (grunt) {
           id: 'api',
           title: 'API',
           scripts: ['<%= yeoman.app %>/scripts']
+        },{
+          id: 'cq',
+          title: 'CQ',
+          docs: ['<%= yeoman.app %>/docs']
         }]
       }]
     }

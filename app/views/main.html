@@ -1,33 +1,26 @@
-<div class="header">
-  <ul class="nav nav-pills pull-right">
-    <li>
-      <button class="btn btn-link">Log Out</button>
-    </li>
-  </ul>
+<h1 class="page-header">Feed</h1>
 
-  <h3 class="text-muted">OnStar Training</h3>
-</div>
+<div class="col-md-8">
+  <form class="form" ng-submit="Main.post(Main.newPost)">
+    <div class="form-group">
+      <textarea class="form-control" rows="3" placeholder="Comparte algo..."
+        ng-model="Main.newPost"></textarea>
+    </div>
 
-<div class="jumbotron">
-  <h1>'Allo, 'Allo!</h1>
-  <p class="lead">
-    <img src="images/yeoman.png" alt="I'm Yeoman"><br>
-    Always a pleasure scaffolding your apps.
-  </p>
-  <p><a class="btn btn-lg btn-success" ng-href="#">Splendid!</a></p>
-</div>
+    <div class="form-group clearfix">
+      <div class="pull-right">
+        <input type="submit" value="Post" class="btn btn-primary">
+      </div>
+    </div>
+  </form>
 
-<div class="row marketing">
-  <h4>HTML5 Boilerplate</h4>
-  <p>
-    HTML5 Boilerplate is a professional front-end template for building fast, robust, and adaptable web apps or sites.
-  </p>
+  <hr>
 
-  <h4>Angular</h4>
-  <p>
-    AngularJS is a toolset for building the framework most suited to your application development.
-  </p>
-
-  <h4>Karma</h4>
-  <p>Spectacular Test Runner for JavaScript.</p>
+  <section class="feed">
+    <article ng-repeat="post in Main.feed">
+      <h3 ng-bind="post.user"></h3>
+      <p ng-bind="post.post"></p>
+      <p ng-bind="post.date"></p>
+    </article>
+  </section>
 </div>

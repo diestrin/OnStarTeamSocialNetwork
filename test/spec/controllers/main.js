@@ -6,7 +6,7 @@ describe('Controller: MainCtrl', function () {
   beforeEach(module('OSTApp'));
 
   var MainCtrl,
-    scope;
+      scope;
 
   // Initialize the controller and a mock scope
   beforeEach(inject(function ($controller, $rootScope) {
@@ -15,5 +15,4 @@ describe('Controller: MainCtrl', function () {
       $scope: scope
     });
   }));
-
 });
